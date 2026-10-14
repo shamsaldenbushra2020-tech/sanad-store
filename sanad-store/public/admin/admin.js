@@ -1,145 +1,178 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
-const Product = require('../models/Product');
-const Setting = require('../models/Setting');
-
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
-  }
-});
-const upload = multer({ storage });
-
-const uploadMiddleware = (req, res, next) => {
-  if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
-    upload.single('image')(req, res, (err) => {
-      if (err) return res.status(400).json({ error: err.message });
-      next();
-    });
-  } else {
-    next();
-  }
-};
-
-// تسجيل الدخول
-router.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
-    req.session.loggedIn = true;
-    return res.json({ success: true });
-  }
-  return res.status(401).json({ success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
-});
-
-router.post('/logout', (req, res) => {
-  req.session.destroy(() => res.json({ success: true }));
-});
-
-router.get('/check', (req, res) => {
-  res.json({ loggedIn: !!(req.session && req.session.loggedIn) });
-});
-
-router.use(requireAuth);
-
-// العمليات على المنتجات في MongoDB
-const handleGetProducts = async (req, res) => {
-  const products = await Product.find().sort({ createdAt: -1 });
-  res.json(products);
-};
-
-const handleCreateProduct = async (req, res) => {
-  const { name, category, price, meta } = req.body;
-  const newProduct = new Product({
-    name: name.trim(),
-    category,
-    meta: (meta || '').trim(),
-    price: Number(price),
-    image: req.file ? '/uploads/' + req.file.filename : ''
+// ===== التبويبات =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
   });
-  await newProduct.save();
-  res.status(201).json(newProduct);
-};
+});
 
-const handleUpdateProduct = async (req, res) => {
-  const { name, category, price, meta, removeImage } = req.body;
-  const product = await Product.findById(req.params.id);
-  if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
+// ===== تسجيل الخروج =====
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/admin/logout', { method: 'POST' });
+  window.location.href = '/admin/login.html';
+});
 
-  if (req.file) {
-    if (product.image) {
-      const oldPath = path.join(UPLOAD_DIR, path.basename(product.image));
-      fs.unlink(oldPath, () => {});
-    }
-    product.image = '/uploads/' + req.file.filename;
-  } else if (removeImage === 'true' || removeImage === true) {
-    if (product.image) {
-      const oldPath = path.join(UPLOAD_DIR, path.basename(product.image));
-      fs.unlink(oldPath, () => {});
-    }
-    product.image = '';
+const CATEGORY_LABELS = { phone: 'جوال', stc: 'بطاقة STC' };
+
+// ===== جلب وعرض المنتجات =====
+async function loadProducts() {
+  const res = await fetch('/admin/api/products');
+  if (res.status === 401) return (window.location.href = '/admin/login.html');
+  const products = await res.json();
+  const tbody = document.getElementById('productsBody');
+
+  if (!products.length) {
+    tbody.innerHTML = '<tr><td colspan="6">لا توجد منتجات بعد. اضغط "إضافة منتج" للبدء.</td></tr>';
+    return;
   }
 
-  if (name !== undefined) product.name = name.trim();
-  if (category !== undefined) product.category = category;
-  if (price !== undefined) product.price = Number(price);
-  if (meta !== undefined) product.meta = meta.trim();
+  tbody.innerHTML = products.map(p => `
+    <tr>
+      <td>${p.image ? `<img src="${p.image}" alt="">` : '—'}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${CATEGORY_LABELS[p.category] || p.category}</td>
+      <td>${escapeHtml(p.meta || '')}</td>
+      <td>${Number(p.price).toLocaleString('ar-SA')} ر.س</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost" onclick="editProduct('${p.id}')">تعديل</button>
+        <button class="btn btn-danger" onclick="deleteProduct('${p.id}')">حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
 
-  await product.save();
-  res.json(product);
-};
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-const handleDeleteProduct = async (req, res) => {
-  const product = await Product.findByIdAndDelete(req.params.id);
-  if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
+// ===== النافذة المنبثقة (إضافة/تعديل) =====
+const modal = document.getElementById('productModal');
+const productForm = document.getElementById('productForm');
+let currentProducts = [];
 
-  if (product.image) {
-    const imgPath = path.join(UPLOAD_DIR, path.basename(product.image));
-    fs.unlink(imgPath, () => {});
+async function refreshCurrentProducts() {
+  const res = await fetch('/admin/api/products');
+  currentProducts = await res.json();
+}
+
+document.getElementById('addProductBtn').addEventListener('click', () => {
+  openModal();
+});
+
+document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+function openModal(product) {
+  document.getElementById('productMsg').textContent = '';
+  productForm.reset();
+  document.getElementById('currentImagePreview').innerHTML = '';
+  if (product) {
+    document.getElementById('modalTitle').textContent = 'تعديل منتج';
+    document.getElementById('productId').value = product.id;
+    document.getElementById('pName').value = product.name;
+    document.getElementById('pCategory').value = product.category;
+    document.getElementById('pPrice').value = product.price;
+    document.getElementById('pMeta').value = product.meta || '';
+    if (product.image) {
+      document.getElementById('currentImagePreview').innerHTML =
+        `<img src="${product.image}" alt="الصورة الحالية">`;
+    }
+  } else {
+    document.getElementById('modalTitle').textContent = 'إضافة منتج';
+    document.getElementById('productId').value = '';
   }
-  res.json({ success: true });
+  modal.classList.add('active');
+}
+
+function closeModal() {
+  modal.classList.remove('active');
+}
+
+window.editProduct = async function (id) {
+  await refreshCurrentProducts();
+  const product = currentProducts.find(p => p.id === id);
+  if (product) openModal(product);
 };
 
-// العمليات على الإعدادات في MongoDB
-const handleGetSettings = async (req, res) => {
-  let settings = await Setting.findOne();
-  if (!settings) settings = await Setting.create({});
-  res.json(settings);
+window.deleteProduct = async function (id) {
+  if (!confirm('هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+  const res = await fetch('/admin/api/products/' + id, { method: 'DELETE' });
+  if (res.ok) loadProducts();
+  else alert('تعذر حذف المنتج');
 };
 
-const handleUpdateSettings = async (req, res) => {
-  const { storeName, whatsappNumber, heroTitle, heroSubtitle } = req.body;
-  let settings = await Setting.findOne();
-  if (!settings) settings = new Setting();
+productForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = document.getElementById('productMsg');
+  msgEl.textContent = '';
 
-  if (storeName !== undefined) settings.storeName = storeName.trim();
-  if (whatsappNumber !== undefined) settings.whatsappNumber = whatsappNumber.trim();
-  if (heroTitle !== undefined) settings.heroTitle = heroTitle.trim();
-  if (heroSubtitle !== undefined) settings.heroSubtitle = heroSubtitle.trim();
+  const id = document.getElementById('productId').value;
+  const formData = new FormData();
+  formData.append('name', document.getElementById('pName').value);
+  formData.append('category', document.getElementById('pCategory').value);
+  formData.append('price', document.getElementById('pPrice').value);
+  formData.append('meta', document.getElementById('pMeta').value);
+  const file = document.getElementById('pImage').files[0];
+  if (file) formData.append('image', file);
 
-  await settings.save();
-  res.json(settings);
-};
+  const url = id ? '/admin/api/products/' + id : '/admin/api/products';
+  const method = id ? 'PUT' : 'POST';
 
-['/api/products', '/products'].forEach(p => {
-  router.get(p, handleGetProducts);
-  router.post(p, uploadMiddleware, handleCreateProduct);
+  try {
+    const res = await fetch(url, { method, body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      msgEl.textContent = data.error || 'حدث خطأ أثناء الحفظ';
+      return;
+    }
+    closeModal();
+    loadProducts();
+  } catch (err) {
+    msgEl.textContent = 'تعذر الاتصال بالخادم';
+  }
 });
 
-['/api/products/:id', '/products/:id'].forEach(p => {
-  router.put(p, uploadMiddleware, handleUpdateProduct);
-  router.delete(p, handleDeleteProduct);
+// ===== الإعدادات =====
+async function loadSettings() {
+  const res = await fetch('/admin/api/settings');
+  if (res.status === 401) return (window.location.href = '/admin/login.html');
+  const s = await res.json();
+  document.getElementById('storeName').value = s.storeName || '';
+  document.getElementById('whatsappNumber').value = s.whatsappNumber || '';
+  document.getElementById('heroTitle').value = s.heroTitle || '';
+  document.getElementById('heroSubtitle').value = s.heroSubtitle || '';
+}
+
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = document.getElementById('settingsMsg');
+  msgEl.textContent = '';
+
+  const payload = {
+    storeName: document.getElementById('storeName').value,
+    whatsappNumber: document.getElementById('whatsappNumber').value,
+    heroTitle: document.getElementById('heroTitle').value,
+    heroSubtitle: document.getElementById('heroSubtitle').value
+  };
+
+  const res = await fetch('/admin/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    msgEl.textContent = 'تم حفظ الإعدادات بنجاح';
+  } else {
+    msgEl.textContent = 'تعذر حفظ الإعدادات';
+    msgEl.classList.add('error-msg');
+  }
 });
 
-['/api/settings', '/settings'].forEach(p => {
-  router.get(p, handleGetSettings);
-  router.put(p, handleUpdateSettings);
-});
-
-module.exports = router;
+// ===== بدء التشغيل =====
+loadProducts();
+loadSettings();
