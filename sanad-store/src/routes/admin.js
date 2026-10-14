@@ -4,11 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const { getProducts, saveProducts, getSettings, saveSettings, genId } = require('../data');
+const Product = require('../models/Product');
+const Setting = require('../models/Setting');
 
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
@@ -16,18 +15,7 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
   }
 });
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!ALLOWED_TYPES.includes(file.mimetype)) {
-      return cb(new Error('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو GIF.'));
-    }
-    cb(null, true);
-  }
-});
+const upload = multer({ storage });
 
 const uploadMiddleware = (req, res, next) => {
   if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
@@ -40,7 +28,7 @@ const uploadMiddleware = (req, res, next) => {
   }
 };
 
-// ===== تسجيل الدخول =====
+// تسجيل الدخول
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
@@ -58,86 +46,84 @@ router.get('/check', (req, res) => {
   res.json({ loggedIn: !!(req.session && req.session.loggedIn) });
 });
 
-// ===== حماية المسارات التالية =====
 router.use(requireAuth);
 
-const handleGetProducts = (req, res) => res.json(getProducts());
+// العمليات على المنتجات في MongoDB
+const handleGetProducts = async (req, res) => {
+  const products = await Product.find().sort({ createdAt: -1 });
+  res.json(products);
+};
 
-const handleCreateProduct = (req, res) => {
+const handleCreateProduct = async (req, res) => {
   const { name, category, price, meta } = req.body;
-  if (!name || !category || !price) {
-    return res.status(400).json({ error: 'الاسم والتصنيف والسعر مطلوبة' });
-  }
-  const products = getProducts();
-  const newProduct = {
-    id: genId(),
+  const newProduct = new Product({
     name: name.trim(),
     category,
     meta: (meta || '').trim(),
     price: Number(price),
     image: req.file ? '/uploads/' + req.file.filename : ''
-  };
-  products.push(newProduct);
-  saveProducts(products);
+  });
+  await newProduct.save();
   res.status(201).json(newProduct);
 };
 
-const handleUpdateProduct = (req, res) => {
-  const products = getProducts();
-  const idx = products.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'المنتج غير موجود' });
-
+const handleUpdateProduct = async (req, res) => {
   const { name, category, price, meta, removeImage } = req.body;
-  const existing = products[idx];
+  const product = await Product.findById(req.params.id);
+  if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
 
   if (req.file) {
-    if (existing.image) {
-      const oldPath = path.join(UPLOAD_DIR, path.basename(existing.image));
+    if (product.image) {
+      const oldPath = path.join(UPLOAD_DIR, path.basename(product.image));
       fs.unlink(oldPath, () => {});
     }
-    existing.image = '/uploads/' + req.file.filename;
+    product.image = '/uploads/' + req.file.filename;
   } else if (removeImage === 'true' || removeImage === true) {
-    if (existing.image) {
-      const oldPath = path.join(UPLOAD_DIR, path.basename(existing.image));
+    if (product.image) {
+      const oldPath = path.join(UPLOAD_DIR, path.basename(product.image));
       fs.unlink(oldPath, () => {});
     }
-    existing.image = '';
+    product.image = '';
   }
 
-  if (name !== undefined) existing.name = name.trim();
-  if (category !== undefined) existing.category = category;
-  if (price !== undefined) existing.price = Number(price);
-  if (meta !== undefined) existing.meta = meta.trim();
+  if (name !== undefined) product.name = name.trim();
+  if (category !== undefined) product.category = category;
+  if (price !== undefined) product.price = Number(price);
+  if (meta !== undefined) product.meta = meta.trim();
 
-  products[idx] = existing;
-  saveProducts(products);
-  res.json(existing);
+  await product.save();
+  res.json(product);
 };
 
-const handleDeleteProduct = (req, res) => {
-  const products = getProducts();
-  const idx = products.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'المنتج غير موجود' });
+const handleDeleteProduct = async (req, res) => {
+  const product = await Product.findByIdAndDelete(req.params.id);
+  if (!product) return res.status(404).json({ error: 'المنتج غير موجود' });
 
-  const [removed] = products.splice(idx, 1);
-  if (removed.image) {
-    const imgPath = path.join(UPLOAD_DIR, path.basename(removed.image));
+  if (product.image) {
+    const imgPath = path.join(UPLOAD_DIR, path.basename(product.image));
     fs.unlink(imgPath, () => {});
   }
-  saveProducts(products);
   res.json({ success: true });
 };
 
-const handleGetSettings = (req, res) => res.json(getSettings());
+// العمليات على الإعدادات في MongoDB
+const handleGetSettings = async (req, res) => {
+  let settings = await Setting.findOne();
+  if (!settings) settings = await Setting.create({});
+  res.json(settings);
+};
 
-const handleUpdateSettings = (req, res) => {
+const handleUpdateSettings = async (req, res) => {
   const { storeName, whatsappNumber, heroTitle, heroSubtitle } = req.body;
-  const settings = getSettings();
+  let settings = await Setting.findOne();
+  if (!settings) settings = new Setting();
+
   if (storeName !== undefined) settings.storeName = storeName.trim();
   if (whatsappNumber !== undefined) settings.whatsappNumber = whatsappNumber.trim();
   if (heroTitle !== undefined) settings.heroTitle = heroTitle.trim();
   if (heroSubtitle !== undefined) settings.heroSubtitle = heroSubtitle.trim();
-  saveSettings(settings);
+
+  await settings.save();
   res.json(settings);
 };
 
@@ -154,13 +140,6 @@ const handleUpdateSettings = (req, res) => {
 ['/api/settings', '/settings'].forEach(p => {
   router.get(p, handleGetSettings);
   router.put(p, handleUpdateSettings);
-});
-
-router.use((err, req, res, next) => {
-  if (err) {
-    return res.status(400).json({ error: err.message || 'حدث خطأ أثناء معالجة الطلب' });
-  }
-  next();
 });
 
 module.exports = router;
