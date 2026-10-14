@@ -1,6 +1,10 @@
-{
-  "storeName": "سند",
-  "whatsappNumber": "966500000000",
-  "heroTitle": "جوالك الجديد وشحن رصيدك، من مكان واحد",
-  "heroSubtitle": "نوفّر أحدث الجوالات الأصلية وبطاقات شحن STC وباقات الاتصال، مع طلب مباشر عبر واتساب وتسليم سريع داخل المملكة."
-}
+const mongoose = require('mongoose');
+
+const settingSchema = new mongoose.Schema({
+  storeName: { type: String, default: 'متجر سند' },
+  whatsappNumber: { type: String, default: '' },
+  heroTitle: { type: String, default: '' },
+  heroSubtitle: { type: String, default: '' }
+});
+
+module.exports = mongoose.model('Setting', settingSchema);
