@@ -32,16 +32,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // إعداد الجلسات لتُحفظ في MongoDB السحابي
+// دعم ذكي لمكتبة الجلسات لتعمل مع جميع الإصدارات (الحديثة والقديمة)
+const sessionStore = typeof MongoStore.create === 'function'
+  ? MongoStore.create({ mongoUrl: MONGO_URI })
+  : new (require('connect-mongo')(session))({ url: MONGO_URI });
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   proxy: true,
-  store: MongoStore.create({ mongoUrl: MONGO_URI }),
+  store: sessionStore,
   cookie: {
     httpOnly: true,
-    secure: false,
-    maxAge: 1000 * 60 * 60 * 8
+    secure: false, 
+    maxAge: 1000 * 60 * 60 * 8 // 8 ساعات
   }
 }));
 
