@@ -1,0 +1,50 @@
+[
+  {
+    "id": "p1",
+    "category": "phone",
+    "name": "آيفون 17 برو",
+    "meta": "256 جيجا · جميع الألوان",
+    "price": 4999,
+    "image": ""
+  },
+  {
+    "id": "p2",
+    "category": "phone",
+    "name": "سامسونج S25",
+    "meta": "512 جيجا · أسود/فضي",
+    "price": 3699,
+    "image": ""
+  },
+  {
+    "id": "p3",
+    "category": "phone",
+    "name": "شاومي 15",
+    "meta": "256 جيجا · أزرق",
+    "price": 2199,
+    "image": ""
+  },
+  {
+    "id": "s1",
+    "category": "stc",
+    "name": "بطاقة شحن 20",
+    "meta": "بطاقة شحن فورية",
+    "price": 20,
+    "image": ""
+  },
+  {
+    "id": "s2",
+    "category": "stc",
+    "name": "بطاقة شحن 50",
+    "meta": "بطاقة شحن فورية",
+    "price": 50,
+    "image": ""
+  },
+  {
+    "id": "s3",
+    "category": "stc",
+    "name": "بطاقة شحن 100",
+    "meta": "بطاقة شحن فورية",
+    "price": 100,
+    "image": ""
+  }
+]

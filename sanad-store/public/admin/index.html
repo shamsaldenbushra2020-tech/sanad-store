@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة تحكم سند</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<header class="admin-header">
+  <div class="admin-wrap">
+    <div class="brand">لوحة تحكم سند</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="products">المنتجات</button>
+      <button class="tab-btn" data-tab="settings">الإعدادات</button>
+    </div>
+    <button id="logoutBtn" class="btn btn-ghost">تسجيل الخروج</button>
+  </div>
+</header>
+
+<main class="admin-wrap">
+
+  <!-- تبويب المنتجات -->
+  <section id="tab-products" class="tab-panel active">
+    <div class="panel-head">
+      <h2>المنتجات</h2>
+      <button id="addProductBtn" class="btn btn-primary">+ إضافة منتج</button>
+    </div>
+    <div id="productsTableWrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>الصورة</th>
+            <th>الاسم</th>
+            <th>التصنيف</th>
+            <th>الوصف</th>
+            <th>السعر</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="productsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- تبويب الإعدادات -->
+  <section id="tab-settings" class="tab-panel">
+    <div class="panel-head"><h2>إعدادات المتجر</h2></div>
+    <form id="settingsForm" class="settings-form">
+      <div class="field">
+        <label for="storeName">اسم المتجر</label>
+        <input id="storeName" required>
+      </div>
+      <div class="field">
+        <label for="whatsappNumber">رقم واتساب (بصيغة دولية بدون + أو رموز، مثال: 966500000000)</label>
+        <input id="whatsappNumber" required pattern="^[0-9]{10,15}$">
+      </div>
+      <div class="field">
+        <label for="heroTitle">عنوان الصفحة الرئيسية</label>
+        <input id="heroTitle" required>
+      </div>
+      <div class="field">
+        <label for="heroSubtitle">الوصف المختصر تحت العنوان</label>
+        <textarea id="heroSubtitle" required></textarea>
+      </div>
+      <div id="settingsMsg" class="success-msg"></div>
+      <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
+    </form>
+  </section>
+
+</main>
+
+<!-- نافذة إضافة/تعديل منتج -->
+<div id="productModal" class="modal-overlay">
+  <div class="modal">
+    <h3 id="modalTitle">إضافة منتج</h3>
+    <form id="productForm">
+      <input type="hidden" id="productId">
+      <div class="field">
+        <label for="pName">اسم المنتج</label>
+        <input id="pName" required>
+      </div>
+      <div class="field">
+        <label for="pCategory">التصنيف</label>
+        <select id="pCategory" required>
+          <option value="phone">جوال</option>
+          <option value="stc">بطاقة STC</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pPrice">السعر (ر.س)</label>
+        <input id="pPrice" type="number" min="0" step="0.01" required>
+      </div>
+      <div class="field">
+        <label for="pMeta">وصف مختصر (مثال: 256 جيجا · أسود)</label>
+        <input id="pMeta">
+      </div>
+      <div class="field">
+        <label for="pImage">صورة المنتج</label>
+        <input id="pImage" type="file" accept="image/*">
+        <div id="currentImagePreview"></div>
+      </div>
+      <div id="productMsg" class="error-msg"></div>
+      <div class="modal-actions">
+        <button type="button" id="cancelModalBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>
