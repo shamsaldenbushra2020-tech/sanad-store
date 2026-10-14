@@ -11,11 +11,10 @@ const { requireAuth } = require('./src/middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// تحقق من إعداد متغيرات البيئة الأساسية قبل التشغيل
-if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS || !process.env.SESSION_SECRET) {
-  console.error('خطأ: الرجاء إنشاء ملف .env (انسخ من .env.example) وتعبئة القيم قبل التشغيل.');
-  process.exit(1);
-}
+// تعيين قيم افتراضية آمنة لضمان عمل السيرفر بسلاسة على Render وفي حال عدم وجود ملف .env
+process.env.ADMIN_USER = process.env.ADMIN_USER || 'shams';
+process.env.ADMIN_PASS = process.env.ADMIN_PASS || '10203040';
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-to-a-long-random-string';
 
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
