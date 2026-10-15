@@ -1,18 +1,21 @@
-async function loadSettings() {
+// ===== إعدادات المتجر =====
+function loadSettings() {
   try {
-    const res = await fetch('/api/settings');
-    const s = await res.json();
+    // قراءة البيانات من هيكل الصفحة مباشرة
+    const s = window.STATIC_DATA ? window.STATIC_DATA.settings : {};
+    
     document.getElementById('brandName').textContent = s.storeName || 'سند';
     document.getElementById('footerBrand').textContent = s.storeName || 'سند';
-    document.getElementById('heroTitle').textContent = s.heroTitle || '';
+    document.getElementById('heroTitle').textContent = s.heroTitle || 'متجر سند';
     document.getElementById('heroSubtitle').textContent = s.heroSubtitle || '';
-    document.title = (s.storeName || 'سند') + ' | جوالات وبطاقات اتصال';
+    document.title = (s.storeName || 'سند') + ' | جوالات، حواسيب، وبطاقات';
     window.__whatsappNumber = s.whatsappNumber || '';
   } catch (e) {
     console.error('تعذر تحميل الإعدادات', e);
   }
 }
 
+// ===== تصميم بطاقات المنتجات =====
 function productCard(p) {
   const img = p.image
     ? `<img src="${p.image}" alt="${p.name}">`
@@ -47,42 +50,57 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-async function loadProducts() {
+// ===== جلب وعرض المنتجات =====
+function loadProducts() {
   const phonesGrid = document.getElementById('phonesGrid');
+  const computersGrid = document.getElementById('computersGrid');
   const stcGrid = document.getElementById('stcGrid');
   const select = document.getElementById('product');
 
   try {
-    const res = await fetch('/api/products');
-    const products = await res.json();
+    // جلب المنتجات من البيانات المحقونة فقط
+    const products = window.STATIC_DATA ? window.STATIC_DATA.products : [];
 
     const phones = products.filter(p => p.category === 'phone');
+    const computers = products.filter(p => p.category === 'computer');
     const stc = products.filter(p => p.category === 'stc');
 
+    // عرض الجوالات
     phonesGrid.innerHTML = phones.length
       ? phones.map(productCard).join('')
       : '<p class="empty-msg">لا توجد جوالات متاحة حاليًا.</p>';
 
+    // عرض الحواسيب
+    if(computersGrid) {
+      computersGrid.innerHTML = computers.length
+        ? computers.map(productCard).join('')
+        : '<p class="empty-msg">لا توجد حواسيب متاحة حاليًا.</p>';
+    }
+
+    // عرض البطاقات
     stcGrid.innerHTML = stc.length
       ? stc.map(stcCard).join('')
       : '<p class="empty-msg">لا توجد بطاقات متاحة حاليًا.</p>';
 
+    // تعبئة قائمة المنتجات في نموذج الطلب
     select.innerHTML = products.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('')
       + '<option value="أخرى">أخرى (أذكرها في الملاحظات)</option>';
 
-    // الضغط على "اطلب" في بطاقة منتج يحدد المنتج تلقائيًا في النموذج
+    // تفعيل أزرار الطلب السريع
     document.querySelectorAll('.order[data-product]').forEach(link => {
       link.addEventListener('click', () => {
         select.value = link.dataset.product;
       });
     });
   } catch (e) {
-    phonesGrid.innerHTML = '<p class="empty-msg">تعذر تحميل المنتجات.</p>';
-    stcGrid.innerHTML = '<p class="empty-msg">تعذر تحميل المنتجات.</p>';
+    phonesGrid.innerHTML = '<p class="empty-msg">تعذر عرض المنتجات.</p>';
+    if(computersGrid) computersGrid.innerHTML = '<p class="empty-msg">تعذر عرض المنتجات.</p>';
+    stcGrid.innerHTML = '<p class="empty-msg">تعذر عرض المنتجات.</p>';
     console.error(e);
   }
 }
 
+// ===== إرسال الطلب عبر واتساب =====
 document.getElementById('orderForm').addEventListener('submit', function (e) {
   e.preventDefault();
   const name = document.getElementById('name').value.trim();
@@ -111,5 +129,6 @@ document.getElementById('orderForm').addEventListener('submit', function (e) {
   window.open(url, '_blank');
 });
 
+// بدء التشغيل
 loadSettings();
 loadProducts();
