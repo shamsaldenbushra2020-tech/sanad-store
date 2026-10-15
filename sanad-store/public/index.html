@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>سند | جوالات وبطاقات اتصال</title>
+<title>سند | جوالات، حواسيب، وبطاقات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,9 +19,9 @@
     </div>
     <div class="nav-links">
       <a href="#phones">الجوالات</a>
+      <a href="#computers">الحواسيب</a>
       <a href="#stc">بطاقات STC</a>
       <a href="#how">كيف تطلب</a>
-      <a href="#order">تواصل معنا</a>
     </div>
     <a class="nav-cta" href="#order">اطلب الآن</a>
   </nav>
@@ -31,22 +31,23 @@
   <div class="wrap hero-grid">
     <div>
       <div class="eyebrow">متجر سند</div>
-      <h1 id="heroTitle">جوالك الجديد وشحن رصيدك، من مكان واحد</h1>
-      <p class="lead" id="heroSubtitle">نوفّر أحدث الجوالات الأصلية وبطاقات شحن STC وباقات الاتصال.</p>
+      <h1 id="heroTitle">تحديث التقنية وشحن الرصيد، من مكان واحد</h1>
+      <p class="lead" id="heroSubtitle">نوفّر أحدث الجوالات، الحواسيب المحمولة، وبطاقات شحن STC وباقات الاتصال.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#order">اطلب الآن</a>
-        <a class="btn btn-ghost" href="#stc">تصفّح بطاقات STC</a>
+        <a class="btn btn-ghost" href="#computers">تصفّح الحواسيب</a>
       </div>
     </div>
     <div class="hero-card">
       <div class="row"><span>توصيل داخل المملكة</span><b>1-3 أيام</b></div>
-      <div class="row"><span>ضمان الجوالات</span><b>ضمان الوكيل</b></div>
+      <div class="row"><span>الضمان</span><b>ضمان الوكيل</b></div>
       <div class="row"><span>طريقة الطلب</span><span class="tag">نموذج + واتساب</span></div>
       <div class="row"><span>الدفع</span><b>عند الاستلام / تحويل</b></div>
     </div>
   </div>
 </section>
 
+<!-- قسم الجوالات -->
 <section id="phones">
   <div class="wrap">
     <div class="section-head">
@@ -59,6 +60,20 @@
   </div>
 </section>
 
+<!-- قسم الحواسيب (الجديد) -->
+<section id="computers" style="background-color: var(--bg-subtle);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">الحواسيب</div>
+      <h2>أجهزة اللابتوب والمكتبي</h2>
+    </div>
+    <div class="grid3" id="computersGrid">
+      <p class="empty-msg">جاري تحميل المنتجات...</p>
+    </div>
+  </div>
+</section>
+
+<!-- قسم البطاقات -->
 <section id="stc">
   <div class="wrap">
     <div class="stc-wrap">
@@ -78,8 +93,8 @@
       <h2>ثلاث خطوات بسيطة</h2>
     </div>
     <div class="steps">
-      <div class="step"><h3>اختر المنتج</h3><p>جوال أو بطاقة شحن، حدد المواصفات التي تناسبك.</p></div>
-      <div class="step"><h3>أرسل الطلب</h3><p>عبّئ النموذج بالأسفل، وسيُفتح واتساب تلقائيًا برسالة طلبك.</p></div>
+      <div class="step"><h3>اختر المنتج</h3><p>جوال، حاسوب، أو بطاقة، حدد المواصفات التي تناسبك.</p></div>
+      <div class="step"><h3>أرسل الطلب</h3><p>عبّئ النموذج بالأسفل، وسيُفتح واتساب تلقائيًا بطلبك.</p></div>
       <div class="step"><h3>التأكيد والتسليم</h3><p>نؤكد الطلب معك عبر واتساب ونرتب التسليم أو إرسال الكود.</p></div>
     </div>
   </div>
@@ -115,7 +130,6 @@
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">إرسال الطلب عبر واتساب</button>
         </div>
-        <p class="hint">بالضغط على الزر سيتم فتح واتساب برسالة معبأة تلقائيًا تحتوي بيانات طلبك لإرسالها لنا.</p>
       </form>
     </div>
   </div>
@@ -128,6 +142,6 @@
   </div>
 </footer>
 
-<script src="/js/store.js"></script>
+<script src="js/store.js"></script>
 </body>
 </html>
