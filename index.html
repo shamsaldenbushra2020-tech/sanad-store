@@ -347,7 +347,7 @@
           </div>
           <div class="field">
             <label for="phone">رقم الجوال</label>
-            <input id="phone" required pattern="^05[0-9]{8}$" placeholder="05xxxxxxxx">
+            <input id="phone" type="tel" required placeholder="05xxxxxxxx" inputmode="numeric">
           </div>
           <div class="field full">
             <label for="product">المنتج المطلوب</label>
@@ -636,18 +636,42 @@
   });
 
   // معالجة نموذج إرسال الطلب عبر واتساب
-  document.getElementById('orderForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const name = document.getElementById('name').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const product = document.getElementById('product').value;
-    const notes = document.getElementById('notes').value.trim();
+ // دالة لتحويل الأرقام العربية إلى إنجليزية وإزالة المسافات
+function cleanPhoneNumber(str) {
+  const arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  let clean = str.replace(/[٠-٩]/g, d => arabicNums.indexOf(d)).replace(/[\s\-\+]/g, '');
+  
+  // معالجة حالة إذا أدخل العميل الرقم مع مفتاح الدولة 966
+  if (clean.startsWith('9665')) {
+    clean = '0' + clean.substring(3);
+  } else if (clean.startsWith('009665')) {
+    clean = '0' + clean.substring(5);
+  }
+  return clean;
+}
 
-    let msg = `مرحباً، أرغب بطلب:\nالاسم: ${name}\nالجوال: ${phone}\nالمنتج: ${product}\n`;
-    if (notes) msg += `ملاحظات: ${notes}\n`;
+// معالجة إرسال النموذج عبر واتساب
+document.getElementById('orderForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  let phone = document.getElementById('phone').value.trim();
+  const product = document.getElementById('product').value;
+  const notes = document.getElementById('notes').value.trim();
 
-    window.open('https://wa.me/' + s.whatsappNumber + '?text=' + encodeURIComponent(msg), '_blank');
-  });
+  // تنظيف الرقم من المسافات وتحويل الأرقام تلقائياً
+  phone = cleanPhoneNumber(phone);
+
+  // التحقق من صحة الرقم بعد التنظيف
+  if (!name || !/^05[0-9]{8}$/.test(phone)) {
+    alert('الرجاء إدخال رقم جوال سعودي صحيح يبدأ بـ 05 ويتكون من 10 أرقام');
+    return;
+  }
+
+  let msg = `مرحباً، أرغب بطلب:\nالاسم: ${name}\nالجوال: ${phone}\nالمنتج: ${product}\n`;
+  if (notes) msg += `ملاحظات: ${notes}\n`;
+
+  window.open('https://wa.me/' + s.whatsappNumber + '?text=' + encodeURIComponent(msg), '_blank');
+});
 </script>
 
 </body>
